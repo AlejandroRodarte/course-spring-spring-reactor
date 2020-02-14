@@ -20,18 +20,19 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// map: transforma los datos de un flujo en otro tipo
+		// filter: filtra datos a partir de una condicion booleana
 		Flux<Usuario> nombres =
 			Flux
-				.just("Andres", "Pedro", "Diego", "Juan")
-				.map(nombre -> new Usuario(nombre, null))
+				.just("Andres Guzman", "Pedro Fulano", "Diego Sultano", "Juan Mengano", "Bruce Lee", "Bruce Willis")
+				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
+				.filter(usuario -> usuario.getNombre().equalsIgnoreCase("Bruce"))
 				.doOnNext(usuario -> {
 
 					if (usuario == null) {
 						throw new RuntimeException("Usuario debe existir");
 					}
 
-					System.out.println(usuario.getNombre());
+					System.out.println(usuario.getNombre().concat(" ").concat(usuario.getApellido()));
 
 				})
 				.map(usuario -> {
