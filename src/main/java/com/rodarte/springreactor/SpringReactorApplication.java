@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
@@ -22,24 +23,24 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		Flux<Integer> range = Flux.range(1, 12);
+		Flux<Long> infinito = Flux.interval(Duration.ofSeconds(1));
 
-		// interval y delayElements son operadores asinronos: el metodo run() terminara de ejecutar
-		// pero hilos secundarios seguiran trabajando con los datos de estos observables
+		CountDownLatch latch = new CountDownLatch(1);
 
-		Flux<Long> interval = Flux.interval(Duration.ofSeconds(1));
+		// doOnTerminate: permite al stream ejecutar un efecto secundario cuando completa
+		// Flux.error: retorna un observable con un error, lo atrapa el callback de error en el subscribe
+		// retry: se reintenta hacer la suscripcion despues de un error n cantidad de veces
+		infinito
+			.doOnTerminate(latch::countDown)
+			.flatMap(i -> i >= 5 ? Flux.error(new InterruptedException("Solo hasta 5")) : Flux.just(i))
+			.map(i -> "Hola " + i)
+			.retry(2)
+			.subscribe(
+				logger::info,
+				e -> logger.error(e.getMessage())
+			);
 
-		Flux<Integer> delayElements =
-			range
-				.delayElements(Duration.ofSeconds(1))
-				.doOnNext(r -> logger.info(r.toString()));
-
-		range
-			.zipWith(interval, (r, d) -> r)
-			.doOnNext(r -> logger.info(r.toString()))
-			.blockLast();
-
-		delayElements.blockLast();
+		latch.await();
 
 	}
 
