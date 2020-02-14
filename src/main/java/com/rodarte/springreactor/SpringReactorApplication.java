@@ -8,6 +8,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
 
@@ -20,11 +23,16 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// los observables son inmutables; cada operador devuelve una nueva instancia de Flux
-		// el flujo original se conserva y nunca cambia
-		Flux<String> nombres =
-			Flux
-				.just("Andres Guzman", "Pedro Fulano", "Diego Sultano", "Juan Mengano", "Bruce Lee", "Bruce Willis");
+		List<String> usuariosList = new ArrayList<>();
+
+		usuariosList.add("Andres Guzman");
+		usuariosList.add("Pedro Fulano");
+		usuariosList.add("Diego Sultano");
+		usuariosList.add("Bruce Lee");
+		usuariosList.add("Bruce Willis");
+
+		// creando un observable a partir de un objecto que implementa la interfaz Iterable
+		Flux<String> nombres = Flux.fromIterable(usuariosList);
 
 		Flux<Usuario> usuarios =
 			nombres
