@@ -1,5 +1,6 @@
 package com.rodarte.springreactor;
 
+import com.rodarte.springreactor.models.Usuario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -19,28 +20,27 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// un Flux es un observable
-		// just: crea un observable a partir de los elementos proveidos
-		// una vez emitidos, el observable se completa
-		// doOnNext: el equivalente a tap en rxjs
-		Flux<String> nombres =
+		// map: transforma los datos de un flujo en otro tipo
+		Flux<Usuario> nombres =
 			Flux
 				.just("Andres", "Pedro", "Diego", "Juan")
-				.doOnNext(nombre -> {
+				.map(nombre -> new Usuario(nombre, null))
+				.doOnNext(usuario -> {
 
-					if (nombre.isEmpty()) {
-						throw new RuntimeException("Nombres no pueden ser vacios");
+					if (usuario == null) {
+						throw new RuntimeException("Usuario debe existir");
 					}
 
-					System.out.println(nombre);
+					System.out.println(usuario.getNombre());
 
+				})
+				.map(usuario -> {
+					usuario.setNombre(usuario.getNombre().toLowerCase());
+					return usuario;
 				});
 
-		// suscripcion; metodos next y error
-		// errores interrumpen el flujo y matan la suscripcion
-		// tambien se puede manejar el complete para cuando el observable complete su flujo (sin error)
 		nombres.subscribe(
-			logger::info,
+			usuario -> System.out.println(usuario.toString()),
 			err -> logger.error(err.getMessage()),
 			() -> System.out.println("observable completado")
 		);
