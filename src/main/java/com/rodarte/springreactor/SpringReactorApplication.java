@@ -1,15 +1,14 @@
 package com.rodarte.springreactor;
 
+import com.rodarte.springreactor.models.Comentarios;
 import com.rodarte.springreactor.models.Usuario;
+import com.rodarte.springreactor.models.UsuarioComentarios;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
-import java.util.List;
+import reactor.core.publisher.Mono;
 
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
@@ -23,21 +22,33 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		List<Usuario> usuariosList = new ArrayList<>();
+		// observable de usuario
+		Mono<Usuario> usuarioMono = Mono.fromCallable(this::crearUsuario);
 
-		usuariosList.add(new Usuario("Andres", "Guzman"));
-		usuariosList.add(new Usuario("Pedro", "Fulano"));
-		usuariosList.add(new Usuario("Diego", "Sultano"));
-		usuariosList.add(new Usuario("Bruce", "Lee"));
-		usuariosList.add(new Usuario("Bruce", "Willis"));
+		// observable de comentarios
+		Mono<Comentarios> comentariosMono = Mono.fromCallable(() -> {
 
-		// convirtiendo un Flux a un Mono (de List)
-		// collect list: transforma un Flux<T> a un Mono<List<T>>
-		Flux
-			.fromIterable(usuariosList)
-			.collectList()
+			Comentarios comentarios = new Comentarios();
+
+			comentarios.addComentario("Hola pepe");
+			comentarios.addComentario("Voy a la playa");
+			comentarios.addComentario("Tomo un curso");
+
+			return comentarios;
+
+		});
+
+		// se usa flatMap para transformar el Mono<Usuario> en un Mono<UsuarioComentarios>
+		// la idea es retornar Mono<Comentarios> en flatMap pero aplica en el un map para crear una nueva instancia
+		// de UsuarioComentarios
+		usuarioMono
+			.flatMap(usuario -> comentariosMono.map(comentarios -> new UsuarioComentarios(usuario, comentarios)))
 			.subscribe(System.out::println);
 
+	}
+
+	public Usuario crearUsuario() {
+		return new Usuario("John", "Doe");
 	}
 
 }
