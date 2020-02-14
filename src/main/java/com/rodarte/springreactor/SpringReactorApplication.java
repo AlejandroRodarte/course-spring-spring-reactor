@@ -20,10 +20,14 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// filter: filtra datos a partir de una condicion booleana
-		Flux<Usuario> nombres =
+		// los observables son inmutables; cada operador devuelve una nueva instancia de Flux
+		// el flujo original se conserva y nunca cambia
+		Flux<String> nombres =
 			Flux
-				.just("Andres Guzman", "Pedro Fulano", "Diego Sultano", "Juan Mengano", "Bruce Lee", "Bruce Willis")
+				.just("Andres Guzman", "Pedro Fulano", "Diego Sultano", "Juan Mengano", "Bruce Lee", "Bruce Willis");
+
+		Flux<Usuario> usuarios =
+			nombres
 				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
 				.filter(usuario -> usuario.getNombre().equalsIgnoreCase("Bruce"))
 				.doOnNext(usuario -> {
@@ -40,7 +44,7 @@ public class SpringReactorApplication implements CommandLineRunner {
 					return usuario;
 				});
 
-		nombres.subscribe(
+		usuarios.subscribe(
 			usuario -> System.out.println(usuario.toString()),
 			err -> logger.error(err.getMessage()),
 			() -> System.out.println("observable completado")
