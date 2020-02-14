@@ -22,10 +22,8 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// observable de usuario
 		Mono<Usuario> usuarioMono = Mono.fromCallable(this::crearUsuario);
 
-		// observable de comentarios
 		Mono<Comentarios> comentariosMono = Mono.fromCallable(() -> {
 
 			Comentarios comentarios = new Comentarios();
@@ -38,12 +36,30 @@ public class SpringReactorApplication implements CommandLineRunner {
 
 		});
 
-		// se usa flatMap para transformar el Mono<Usuario> en un Mono<UsuarioComentarios>
-		// la idea es retornar Mono<Comentarios> en flatMap pero aplica en el un map para crear una nueva instancia
-		// de UsuarioComentarios
-		usuarioMono
-			.flatMap(usuario -> comentariosMono.map(comentarios -> new UsuarioComentarios(usuario, comentarios)))
-			.subscribe(System.out::println);
+		// zipWith (primera forma): pasamos el segundo observable; el callback (BiFunction) recibe los resultados
+		// emitidos por tanto el observable fuente como el anidado, pudiendo retornar una nueva instancia de un objeto
+		// combinado
+		Mono<UsuarioComentarios> usuarioComentariosMono =
+			usuarioMono
+				.zipWith(comentariosMono, (usuario, comentarios) -> new UsuarioComentarios(usuario, comentarios));
+
+		// zipWith (segunda forma): solo pasar el segundo observable; el siguiente operador trabajara con un tuple
+		// con los resultados de los dos observables dentro de el; se puede usar map para personalizar la salida del
+		// flujo
+		Mono<UsuarioComentarios> usuarioComentariosMono1 =
+			usuarioMono
+				.zipWith(comentariosMono)
+				.map(tuple -> {
+
+					Usuario usuario = tuple.getT1();
+					Comentarios comentarios = tuple.getT2();
+
+					return new UsuarioComentarios(usuario, comentarios);
+
+				});
+
+		usuarioComentariosMono.subscribe(System.out::println);
+		usuarioComentariosMono1.subscribe(System.out::println);
 
 	}
 
