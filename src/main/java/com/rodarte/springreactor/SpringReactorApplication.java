@@ -8,8 +8,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
 
-import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
@@ -23,24 +23,45 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		Flux<Long> infinito = Flux.interval(Duration.ofSeconds(1));
+		// Flux.create: crear un nuevo Observable
+		// se pasa de argumento una funcion Consumer que representa a nuestro suscriptor
+		// dentro de alli llamamos a metodos next, complete y error como le hacemos en rxjs
 
-		CountDownLatch latch = new CountDownLatch(1);
+		// los handlers de estos tres casos pueden estar al nivel del subscribe o en los operadores
+		// doOnNext, doOnError o doOnComplete
+		Flux
+			.create(emitter -> {
 
-		// doOnTerminate: permite al stream ejecutar un efecto secundario cuando completa
-		// Flux.error: retorna un observable con un error, lo atrapa el callback de error en el subscribe
-		// retry: se reintenta hacer la suscripcion despues de un error n cantidad de veces
-		infinito
-			.doOnTerminate(latch::countDown)
-			.flatMap(i -> i >= 5 ? Flux.error(new InterruptedException("Solo hasta 5")) : Flux.just(i))
-			.map(i -> "Hola " + i)
-			.retry(2)
-			.subscribe(
-				logger::info,
-				e -> logger.error(e.getMessage())
-			);
+				Timer timer = new Timer();
 
-		latch.await();
+				timer.schedule(new TimerTask() {
+
+					private Integer counter = 0;
+
+					@Override
+					public void run() {
+
+						emitter.next(counter++);
+
+						if (counter == 10) {
+							timer.cancel();
+							emitter.complete();
+						}
+
+						if (counter == 5) {
+							timer.cancel();
+							emitter.error(new InterruptedException("Error perro"));
+						}
+
+					}
+
+				}, 1000, 1000);
+
+			})
+			.doOnNext(next -> logger.info(next.toString()))
+			.doOnError(e -> logger.error(e.getMessage()))
+			.doOnComplete(() -> logger.info("observable completado"))
+			.subscribe();
 
 	}
 
