@@ -7,7 +7,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,20 +31,11 @@ public class SpringReactorApplication implements CommandLineRunner {
 		usuariosList.add(new Usuario("Bruce", "Lee"));
 		usuariosList.add(new Usuario("Bruce", "Willis"));
 
-		// map y flatMap nos permite tambien transformar un flujo de objetos a String
+		// convirtiendo un Flux a un Mono (de List)
+		// collect list: transforma un Flux<T> a un Mono<List<T>>
 		Flux
 			.fromIterable(usuariosList)
-			.map(usuario -> usuario.getNombre().toUpperCase().concat(" ").concat(usuario.getApellido().toUpperCase()))
-			.flatMap(nombre -> {
-
-				if (nombre.contains("bruce".toUpperCase())) {
-					return Mono.just(nombre);
-				} else {
-					return Mono.empty();
-				}
-
-			})
-			.map(String::toLowerCase)
+			.collectList()
 			.subscribe(System.out::println);
 
 	}
