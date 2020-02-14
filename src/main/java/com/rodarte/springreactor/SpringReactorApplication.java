@@ -24,35 +24,29 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		List<String> usuariosList = new ArrayList<>();
+		List<Usuario> usuariosList = new ArrayList<>();
 
-		usuariosList.add("Andres Guzman");
-		usuariosList.add("Pedro Fulano");
-		usuariosList.add("Diego Sultano");
-		usuariosList.add("Bruce Lee");
-		usuariosList.add("Bruce Willis");
+		usuariosList.add(new Usuario("Andres", "Guzman"));
+		usuariosList.add(new Usuario("Pedro", "Fulano"));
+		usuariosList.add(new Usuario("Diego", "Sultano"));
+		usuariosList.add(new Usuario("Bruce", "Lee"));
+		usuariosList.add(new Usuario("Bruce", "Willis"));
 
-		// flatMap: operador que recibe una funcion que retorna un Observable
-		// las emisiones de ese Observable interno de aplanan para que todas esten al mismo nivel
-		// Mono.just: Observable para un solo elemento
-		// Mono.empty: Observable vacio
+		// map y flatMap nos permite tambien transformar un flujo de objetos a String
 		Flux
 			.fromIterable(usuariosList)
-			.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
-			.flatMap(usuario -> {
+			.map(usuario -> usuario.getNombre().toUpperCase().concat(" ").concat(usuario.getApellido().toUpperCase()))
+			.flatMap(nombre -> {
 
-				if (usuario.getNombre().equalsIgnoreCase("bruce")) {
-					return Mono.just(usuario);
+				if (nombre.contains("bruce".toUpperCase())) {
+					return Mono.just(nombre);
 				} else {
 					return Mono.empty();
 				}
 
 			})
-			.map(usuario -> {
-				usuario.setNombre(usuario.getNombre().toLowerCase());
-				return usuario;
-			})
-			.subscribe(usuario -> logger.info(usuario.toString()));
+			.map(String::toLowerCase)
+			.subscribe(System.out::println);
 
 	}
 
