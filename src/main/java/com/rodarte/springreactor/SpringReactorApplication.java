@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,32 +32,27 @@ public class SpringReactorApplication implements CommandLineRunner {
 		usuariosList.add("Bruce Lee");
 		usuariosList.add("Bruce Willis");
 
-		// creando un observable a partir de un objecto que implementa la interfaz Iterable
-		Flux<String> nombres = Flux.fromIterable(usuariosList);
+		// flatMap: operador que recibe una funcion que retorna un Observable
+		// las emisiones de ese Observable interno de aplanan para que todas esten al mismo nivel
+		// Mono.just: Observable para un solo elemento
+		// Mono.empty: Observable vacio
+		Flux
+			.fromIterable(usuariosList)
+			.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
+			.flatMap(usuario -> {
 
-		Flux<Usuario> usuarios =
-			nombres
-				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
-				.filter(usuario -> usuario.getNombre().equalsIgnoreCase("Bruce"))
-				.doOnNext(usuario -> {
+				if (usuario.getNombre().equalsIgnoreCase("bruce")) {
+					return Mono.just(usuario);
+				} else {
+					return Mono.empty();
+				}
 
-					if (usuario == null) {
-						throw new RuntimeException("Usuario debe existir");
-					}
-
-					System.out.println(usuario.getNombre().concat(" ").concat(usuario.getApellido()));
-
-				})
-				.map(usuario -> {
-					usuario.setNombre(usuario.getNombre().toLowerCase());
-					return usuario;
-				});
-
-		usuarios.subscribe(
-			usuario -> System.out.println(usuario.toString()),
-			err -> logger.error(err.getMessage()),
-			() -> System.out.println("observable completado")
-		);
+			})
+			.map(usuario -> {
+				usuario.setNombre(usuario.getNombre().toLowerCase());
+				return usuario;
+			})
+			.subscribe(usuario -> logger.info(usuario.toString()));
 
 	}
 
