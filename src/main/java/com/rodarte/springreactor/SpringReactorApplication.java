@@ -1,15 +1,14 @@
 package com.rodarte.springreactor;
 
 import com.rodarte.springreactor.models.Usuario;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
-
-import java.util.Timer;
-import java.util.TimerTask;
 
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
@@ -23,45 +22,58 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// Flux.create: crear un nuevo Observable
-		// se pasa de argumento una funcion Consumer que representa a nuestro suscriptor
-		// dentro de alli llamamos a metodos next, complete y error como le hacemos en rxjs
-
-		// los handlers de estos tres casos pueden estar al nivel del subscribe o en los operadores
-		// doOnNext, doOnError o doOnComplete
+		// manejando contrapresion (forma 1): implementando Suscriber
 		Flux
-			.create(emitter -> {
+			.range(1, 10)
+			.log()
+			.subscribe(new Subscriber<Integer>() {
 
-				Timer timer = new Timer();
+				private Subscription s;
+				private final Integer LIMIT = 2;
+				private Integer consumido = 0;
 
-				timer.schedule(new TimerTask() {
+				// onSuscribe: nos permite ejecutar un codigo al momento de la suscripcion
+				// podemos pedirle un lote de datos por medio de request()
+				@Override
+				public void onSubscribe(Subscription subscription) {
+					this.s = subscription;
+					s.request(this.LIMIT);
+				}
 
-					private Integer counter = 0;
+				// next handler: usamos el contador `consumido` para ir pidiendo lotes de 2 en dos
+				// por medio de request()
+				@Override
+				public void onNext(Integer integer) {
 
-					@Override
-					public void run() {
+					logger.info(integer.toString());
 
-						emitter.next(counter++);
+					this.consumido++;
 
-						if (counter == 10) {
-							timer.cancel();
-							emitter.complete();
-						}
-
-						if (counter == 5) {
-							timer.cancel();
-							emitter.error(new InterruptedException("Error perro"));
-						}
-
+					if (this.consumido == this.LIMIT) {
+						this.consumido = 0;
+						s.request(this.LIMIT);
 					}
 
-				}, 1000, 1000);
+				}
 
-			})
-			.doOnNext(next -> logger.info(next.toString()))
-			.doOnError(e -> logger.error(e.getMessage()))
-			.doOnComplete(() -> logger.info("observable completado"))
-			.subscribe();
+				@Override
+				public void onError(Throwable throwable) {
+
+				}
+
+				@Override
+				public void onComplete() {
+
+				}
+
+			});
+
+		// segunda forma: usando operador limitRate()
+		Flux
+			.range(1, 10)
+			.log()
+			.limitRate(2)
+			.subscribe(i -> logger.info(i.toString()));
 
 	}
 
