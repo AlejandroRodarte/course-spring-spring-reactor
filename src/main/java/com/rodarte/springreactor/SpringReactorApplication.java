@@ -25,7 +25,7 @@ public class SpringReactorApplication implements CommandLineRunner {
 		// doOnNext: el equivalente a tap en rxjs
 		Flux<String> nombres =
 			Flux
-				.just("Andres", "Pedro", "", "Diego", "Juan")
+				.just("Andres", "Pedro", "Diego", "Juan")
 				.doOnNext(nombre -> {
 
 					if (nombre.isEmpty()) {
@@ -38,9 +38,11 @@ public class SpringReactorApplication implements CommandLineRunner {
 
 		// suscripcion; metodos next y error
 		// errores interrumpen el flujo y matan la suscripcion
+		// tambien se puede manejar el complete para cuando el observable complete su flujo (sin error)
 		nombres.subscribe(
 			logger::info,
-			err -> logger.error(err.getMessage())
+			err -> logger.error(err.getMessage()),
+			() -> System.out.println("observable completado")
 		);
 
 	}
