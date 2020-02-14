@@ -8,6 +8,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
+
 @SpringBootApplication
 public class SpringReactorApplication implements CommandLineRunner {
 
@@ -20,11 +22,24 @@ public class SpringReactorApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		// Flux.range: similar a range de rxjs
-		Flux.just(1, 2, 3, 4)
-			.map(i -> i * 2)
-			.zipWith(Flux.range(0, 4), (i, j) -> String.format("Primer Flux: %d, Segundo Flux: %d", i, j))
-			.subscribe(System.out::println);
+		Flux<Integer> range = Flux.range(1, 12);
+
+		// interval y delayElements son operadores asinronos: el metodo run() terminara de ejecutar
+		// pero hilos secundarios seguiran trabajando con los datos de estos observables
+
+		Flux<Long> interval = Flux.interval(Duration.ofSeconds(1));
+
+		Flux<Integer> delayElements =
+			range
+				.delayElements(Duration.ofSeconds(1))
+				.doOnNext(r -> logger.info(r.toString()));
+
+		range
+			.zipWith(interval, (r, d) -> r)
+			.doOnNext(r -> logger.info(r.toString()))
+			.blockLast();
+
+		delayElements.blockLast();
 
 	}
 
